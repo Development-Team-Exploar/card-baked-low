@@ -17,7 +17,10 @@ meshArrayGlow2 = [],
 meshArrayNotGlow = [],
 materialsToAnimate = [],
 cubeMesh = null,
-animateCube = false
+animateCube = false,
+oldCubeRotation = 0,
+oldCubeRotationStep = 0,
+clickableMeshes = []
 
 let timePointerDown, timePointerUp, camera;
 
@@ -31,7 +34,7 @@ const createScene = function () {
     //BABYLON.MeshBuilder.CreateBox("box", {});
 
     //load Modelf
-    BABYLON.SceneLoader.Append("./assets/", "cube_02.glb", scene, function (meshes) {
+    BABYLON.SceneLoader.Append("./assets/", "normal-cube-with-clickables.glb", scene, function (meshes) {
 
         gl = new BABYLON.GlowLayer("glow", scene, { 
             mainTextureSamples: 16,
@@ -71,16 +74,51 @@ const createScene = function () {
                 element.isVisible = false
             if(element.name == 'Plane')
                 element.isVisible = false
+            if(element.name == 'Plane.001' || element.name == 'Plane.002' || element.name == 'Plane.003' || element.name == 'Plane.004') {
+                if(element.name == 'Plane.001') {
+                    const data = {
+                        'clickable' : element,
+                        'actor' : scene.getMeshByName("image cube_primitive2")
+                    }
+                    clickableMeshes.push(data)
+                }
+                if(element.name == 'Plane.002') {
+                    const data = {
+                        'clickable' : element,
+                        'actor' : scene.getMeshByName("image cube_primitive0")
+                    }
+                    clickableMeshes.push(data)
+                }
+                if(element.name == 'Plane.003') {
+                    const data = {
+                        'clickable' : element,
+                        'actor' : scene.getMeshByName("image cube_primitive3")
+                    }
+                    clickableMeshes.push(data)
+                }
+                if(element.name == 'Plane.004') {
+                    const data = {
+                        'clickable' : element,
+                        'actor' : scene.getMeshByName("image cube_primitive1")
+                    }
+                    clickableMeshes.push(data)
+                }
+            }
         });
-        
         // const mainAnim = scene.getAnimationGroupByName("All Animations");
         // mainAnim.play()
-        
+        console.log(clickableMeshes);
         // const cubeFaceMat = scene.getMaterialByName("glass");
         // console.log(cubeFaceMat);
         // cubeFaceMat.alpha = 0.
 
         scene.materials.forEach(element => {
+            if(element.name == '__GLTFLoader._default') {
+                element.hasAlpha = true
+                element.alpha = 0
+                element.MATERIAL_ALPHABLEND = true
+                element.transparencyMode = element.MATERIAL_ALPHABLEND
+            }
             if(element.name == 'Material.005' || element.name == 'Material.006' || element.name == 'Material.007' || element.name == 'Material.008') {
                 // // materialsToAnimate.push(element)
                 element.environmentIntensity = 1
@@ -147,11 +185,11 @@ const createScene = function () {
         // Mirror
         // const light2 = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0.3, 0.3, 0));
         // light2.intensity = 0.04
-        var light = new BABYLON.SpotLight("spotLight", new BABYLON.Vector3(-6, 0, 0), new BABYLON.Vector3(8, -8, 0), Math.PI / 2, 12, scene);
+        var light = new BABYLON.SpotLight("spotLight", new BABYLON.Vector3(-4, 0, 0), new BABYLON.Vector3(8, -8, 0), Math.PI / 2, 20, scene);
         // light.diffuse = new BABYLON.Color3(1, 1, 1);
 	    // light.specular = new BABYLON.Color3(1, 1, 1);
         // light.position = new BABYLON.Vector3(0, 0, 0);
-        light.intensity = 1.1;
+        light.intensity = 0.5;
         // Mirror
         cubeMesh = scene.getMeshByName("Cube");
         // Mirror
@@ -161,38 +199,43 @@ const createScene = function () {
         mirror.material.color = new BABYLON.Color3.FromHexString("#000000");
         // mirror.material.emissiveIntensity = 0.4;
         mirror.material.reflectionTexture = new BABYLON.MirrorTexture("mirror", {ratio: 1}, scene, true);
-        mirror.material.reflectionTexture.mirrorPlane = new BABYLON.Plane(0, -1.0, 0, -.52);
+        mirror.material.reflectionTexture.mirrorPlane = new BABYLON.Plane(0, -1.0, 0, -.49);
         mirror.material.reflectionTexture.renderList = meshArrayNotGlow.concat(meshArrayGlow);
-        mirror.material.reflectionTexture.level = 1.05;
-        mirror.material.reflectionTexture.adaptiveBlurKernel = 20;
+        mirror.material.reflectionTexture.level = 0.5;
+        mirror.material.reflectionTexture.adaptiveBlurKernel = 24;
         mirror.material.specularColor = new BABYLON.Color3(0, 0, 0);
-        mirror.bumpTexture = new BABYLON.Texture("./assets/Seamless_Concrete_Floor_Texture_NORMAL.jpg", scene);
-        mirror.useAlphaFromDiffuseTexture = true
-        mirror.material.bumpTexture = new BABYLON.Texture("./assets/Glass_Frosted_001_normal.jpg", scene);
+        // mirror.bumpTexture = new BABYLON.Texture("./assets/Seamless_Concrete_Floor_Texture_NORMAL.jpg", scene);
+        // mirror.material.diffuseTexture = new BABYLON.Texture("./assets/Seamless_Concrete_Floor_Texture_NORMAL.jpg", scene);
+        mirror.material.specularTexture = new BABYLON.Texture("./assets/Seamless_Concrete_Floor_Texture_NORMAL.jpg", scene);
+        mirror.material.specularTexture.uScale = 16;
+        mirror.material.specularTexture.vScale = 16;
         mirror.position = new BABYLON.Vector3(0, -5, 0);
         mirror.environmentIntensity = 0	
         gl.addExcludedMesh(mirror);
         materialsToAnimate.push(mirror.material)
+        console.log(mirror.material);
         
         const plane = BABYLON.Mesh.CreateBox("ground", 1.0, scene);
         plane.scaling = new BABYLON.Vector3(500.0, .1, 500.0);
         plane.position = new BABYLON.Vector3(0, -1.5, 0);
         plane.rotation.y = -Math.PI/2
         
-        var pbr = new BABYLON.PBRMaterial("pbr", scene);
+        var pbr = new BABYLON.StandardMaterial("pbr", scene);
         plane.material = pbr;
 
-        pbr.albedoColor = new BABYLON.Color3(0.3, 0.3, 0.3);
-        pbr.subSurface.useAlbedoToTintRefraction = true;
-        pbr.albedoTexture = new BABYLON.Texture("./assets/concrete-polished.jpg", scene);
-        pbr.diffuseTexture = new BABYLON.Texture("./assets/opacity-map.png", scene);
+        pbr.diffuseTexture = new BABYLON.Texture("./assets/concrete-polished.jpg", scene);
+        pbr.diffuseTexture.uScale = 32;
+        pbr.diffuseTexture.vScale = 32;
+        pbr.specularTexture = new BABYLON.Texture("./assets/concrete-polished.jpg", scene);
+        pbr.specularTexture.uScale = 32;
+        pbr.specularTexture.vScale = 32;
 
         // pbr.albedoTexture.uScale = 16;
         // pbr.albedoTexture.vScale = 16;
         pbr.metallic = 0.5;
         pbr.roughness = 0.4;
         pbr.hasAlpha = true
-        pbr.alpha = .8
+        pbr.alpha = 0.8
         pbr.environmentIntensity = 0
         // // Main material	
 
@@ -251,98 +294,6 @@ let animationCounter = 0
 let animInterval = null
 let totalAnimCount = 0
 
-// function flickerAnimationInterval() {
-//     animInterval = setInterval(() => {
-//         // flickerAnimateCube()
-//     }, animationIntervalTimer);
-// }
-
-// function flickerAnimateCube() {
-//     if(scene != null && cubeModel != null) {
-//         let cubeMesh = scene.getMeshByName("Cube");
-//         if(animationCounter == 3) {
-//         totalAnimCount++
-//         meshArrayNotGlow.forEach(element => {
-//             // element.setEnabled(true)
-//         });
-//         clearInterval(animInterval)
-//         if(totalAnimCount == 1) {
-//             gl.intensity = 0.1
-//             meshArrayGlow.forEach(element => {
-//             element.setEnabled(false)
-//             });
-//         }
-//         if(totalAnimCount < 1) {
-//             setTimeout(() => {
-//             if(totalAnimCount == 0) {
-//                 meshArrayNotGlow.forEach(element => {
-//                     // element.setEnabled(false)
-//                 });
-//             }
-//             meshArrayGlow.forEach(element => {
-//                 element.setEnabled(false)
-//             });
-//             animationIntervalTimer = 220
-//             animationCounter = -1
-//             }, 1500);
-//         }else {
-//             animateEnvMapInt()
-//         }
-//         }else {
-//         if(cubeMesh) {
-//             meshArrayGlow.forEach(element => {
-//             element.setEnabled(false)
-//             });
-//             setTimeout(() => {
-//             meshArrayGlow.forEach(element => {
-//                 element.setEnabled(true)
-//             });
-//             }, 75);
-//             // animationIntervalTimer = +animationIntervalTimer - 100
-//             animationCounter ++
-//         }
-//         }
-//     }
-// }
-
-// setTimeout(() => {
-//     flickerAnimationInterval()
-// }, 1500);
-
-function animateEnvMapInt() {
-    // materialsToAnimate.forEach(element => {
-    //     element.visibility = 0
-    //     element.transparencyMode = 3
-    // });
-    // meshArrayGlow.forEach(element => {
-    //     element.setEnabled(true)
-    // });
-    // setTimeout(() => {
-    //     materialsToAnimate.forEach(element => {
-    //     new TWEEN.Tween(element)
-    //     .to({alpha : 1 }, 1500)
-    //     .start(); 
-    //     });
-    // }, 500);
-
-    // setTimeout(() => {
-    //     const animation = new TWEEN.Tween(scene)
-    //     .to({environmentIntensity : 0.35 }, 2000)
-    //     .start() 
-    // }, 1500);
-
-    // new TWEEN.Tween(gl)
-    // .to({intensity : 1 }, 2000)
-    // .start()
-    // .onComplete(function() {
-    //     setTimeout(() => {
-    //     //camera.attachControl(canvas, true);   
-    //     camera.useAutoRotationBehavior = true;
-    //     }, 4000);
-    // }); 
-
-}
-
 
 // Register a render loop to repeatedly render the scene
 engine.runRenderLoop(function () {
@@ -379,7 +330,7 @@ let modelRotation = 0
 
 scene.onPointerDown = function(event){
     isMouseDown = true
-    camera.useAutoRotationBehavior = false;
+    // camera.useAutoRotationBehavior = false;
     mouseClick.play()
     mouseX = event.clientX
     animateCube = false
@@ -410,9 +361,51 @@ scene.onPointerDown = function(event){
 
 }
 
+function animateCubeRotation(angle) {
+    let rotateAngle = angle
+    const direction = angle/Math.abs(angle)
+    let cycles = Math.floor(cubeModel.rotation.y/(2*Math.PI))
+    if(angle == 0) {
+        const cubeTempAngle = cubeModel.rotation.y%(2*Math.PI)
+
+        const closest = [0, (2*Math.PI)].reduce((a, b) => {
+            return Math.abs(b - cubeTempAngle) < Math.abs(a - cubeTempAngle) ? b : a;
+        });
+
+        rotateAngle = closest
+    }
+
+    // console.log(cycles,(cycles*(2*Math.PI))+rotateAngle,rotateAngle,cubeModel.rotation.y);
+    
+    gsap.fromTo(cubeModel.rotation, 
+        {
+            y: cubeModel.rotation.y
+        },
+        {
+            y: (cycles*(2*Math.PI))+rotateAngle,
+            duration: 1.75,
+            ease: "power2.out"
+        }
+    )
+    
+    gsap.to(camera, 
+        {
+            radius: 1.7,
+            duration: 1.75,
+            ease: "power2.out"
+        }
+    )
+    // new TWEEN.Tween(camera)
+    // .to({radius : 1.7 }, 2000)
+    // .easing(TWEEN.Easing.Exponential.In)
+    // .start();
+}
+
 scene.onPointerUp = function () {
     let toAnimateCamera = false,
-    cameraAlphaVal = null
+    cameraAlphaVal = null,
+    angle = 0
+
     isMouseDown = false
 
     if(isDragging) {
@@ -422,7 +415,7 @@ scene.onPointerUp = function () {
     }
 
     setTimeout(() => {
-        camera.useAutoRotationBehavior = true;
+        // camera.useAutoRotationBehavior = true;
     }, 2500);
     if(!isDragging){
 
@@ -432,50 +425,34 @@ scene.onPointerUp = function () {
             const clickedMeshName = pickResult.pickedMesh.name; 
             console.log(clickedMeshName);
             if(camera.radius != 1.7) {
-                if(clickedMeshName === "image cube_primitive1" || clickedMeshName === "Front glass panel gold "){
-                    console.log("animate");
+                if(clickedMeshName === "Plane.004"){//front panel
                     toAnimateCamera = true
-                    cameraAlphaVal = -Math.PI / 4.0;
-                }else if(clickedMeshName === "back glass panel" || clickedMeshName === "back glass panel gold"){
+                    angle = 0
+                }else if(clickedMeshName === "Plane.002"){
                     toAnimateCamera = true
-                    cameraAlphaVal = 3 * (Math.PI / 4.0);
-                }else if(clickedMeshName === "Left glass panel" || clickedMeshName === "Left glass panel_gold" ){
+                    angle = 3*Math.PI/2
+                }else if(clickedMeshName === "Plane.003"){//back panel
                     toAnimateCamera = true
-                    cameraAlphaVal = 5 * (Math.PI / 4.0);
+                    angle = Math.PI
+                }else if(clickedMeshName === "Plane.001"){
+                    toAnimateCamera = true
+                    angle = Math.PI/2
                     backImg.video.currentTime = 0
                     backImg.video.muted = false
-
-                }else if(clickedMeshName === "Right glass panel" || clickedMeshName === "Right glass panel gold"){
-                    toAnimateCamera = true
-                    cameraAlphaVal = Math.PI / 4.0;
                 }else {
                     toAnimateCamera = false
                 }
 
                 if(toAnimateCamera) {
-                    camera.useAutoRotationBehavior = false;
+                    // camera.useAutoRotationBehavior = false;
                     const rotation = ((~~(camera.alpha/(2*Math.PI)))* 2*Math.PI) + cameraAlphaVal
                     camera.detachControl(canvas, true);
-
-                    new TWEEN.Tween(camera)
-                    .to({alpha : rotation }, 1000)
-                    .easing(TWEEN.Easing.Exponential.In)
-                    .start(); 
-
+                    animateCubeRotation(angle)
                     new TWEEN.Tween(camera)
                     .to({radius : 1.7 }, 1500)
                     .easing(TWEEN.Easing.Exponential.In)
                     .start(); 
                 }
-            }else if(camera.radius != 2) {
-                new TWEEN.Tween(camera)
-                .to({radius : 2.0 }, 1200)
-                .easing(TWEEN.Easing.Exponential.InOut)
-                .start(); 
-                setTimeout(() => {
-                    animateCube = true  
-                    backImg.video.muted = true
-                }, 1000);
             }
 
 
@@ -553,7 +530,7 @@ scene.onPointerMove = function(event){
     if(isDragging){
         animateCube = false
         // const rotation = (cubeModel.rotation.y - (0.25 * delta * 100) - x);
-        modelRotation = cubeModel.rotation.y + ((delta * 0.04));
+        modelRotation = cubeModel.rotation.y + ((delta * 0.0425));
 
         const animation = gsap.fromTo(cubeModel.rotation, 
             {
@@ -561,17 +538,74 @@ scene.onPointerMove = function(event){
             },
             {
                 y: modelRotation,
-                duration: 1.2,
+                duration: 1.75,
                 ease: "power2.out"
             }
         )
-
-        // cubeModel.rotation.y = x
-        // new TWEEN.Tween(cubeModel.rotation)
-        // .to({y : rotation }, 50)
-        // .easing(TWEEN.Easing.Sinusoidal.InOut)
-        // .start();
         
+    }else {
+        
+        const pickResult = scene.pick(scene.pointerX, scene.pointerY);
+        console.log(pickResult.hit);
+        if(pickResult.hit) {
+            const clickedMeshName = pickResult.pickedMesh?.name;
+            clickableMeshes.forEach(element => {
+                if(clickedMeshName === element.clickable.name){
+                    gsap.fromTo(element.actor.scaling, 
+                        {
+                            x: element.actor.scaling.x,
+                            y: element.actor.scaling.y,
+                            z: element.actor.scaling.z
+                        },
+                        {
+                            x: 1.035,
+                            y: 1.035,
+                            z: 1.035,
+                            duration: 0.5,
+                            ease: "power2.out"
+                        }
+                    )
+                }else {
+                    if(element.actor.scaling.x != 1) {
+                        gsap.fromTo(element.actor.scaling, 
+                            {
+                                x: element.actor.scaling.x,
+                                y: element.actor.scaling.y,
+                                z: element.actor.scaling.z
+                            },
+                            {
+                                x: 1,
+                                y: 1,
+                                z: 1,
+                                duration: 0.5,
+                                ease: "power2.out"
+                            }
+                        )
+                    }
+                }
+            });
+        }else {
+            clickableMeshes.forEach(element => {
+                if(element != null) {
+                    gsap.fromTo(element.actor.scaling, 
+                        {
+                            x: element.actor.scaling.x,
+                            y: element.actor.scaling.y,
+                            z: element.actor.scaling.z
+                        },
+                        {
+                            x: 1,
+                            y: 1,
+                            z: 1,
+                            duration: 0.5,
+                            ease: "power2.out"
+                        }
+                    )
+                }
+            });
+
+        }
+
     }
     mouseX = event.offsetX;
 
