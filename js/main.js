@@ -63,7 +63,6 @@ const createScene = function () {
             }
         }
         scene.meshes.forEach(element => {
-            console.log(element.name);
             if(element.name == 'Green_edge' || element.name == 'White_edge') {
                 meshArrayGlow.push(element)
                     
@@ -107,7 +106,6 @@ const createScene = function () {
         });
         // const mainAnim = scene.getAnimationGroupByName("All Animations");
         // mainAnim.play()
-        console.log(clickableMeshes);
         // const cubeFaceMat = scene.getMaterialByName("glass");
         // console.log(cubeFaceMat);
         // cubeFaceMat.alpha = 0.
@@ -130,6 +128,10 @@ const createScene = function () {
                 element.MATERIAL_ALPHABLEND = true
                 element.transparencyMode = element.MATERIAL_ALPHABLEND
                 element.alphaMode = BABYLON.Engine.ALPHA_PREMULTIPLIED;
+                console.log(element._emissiveColor);
+                // element._emissiveColor = new BABYLON.Color3(0, 0.16, 0.15, 0.75);
+                // element.specular = new BABYLON.Color3(0, 0.16, 0.15, 0.75);
+
             }else {
                 
                 element.roughness = 0.13
@@ -327,38 +329,12 @@ function toggleContentOverlay(){
 let x = 0.0;
 let easing = 0.01;
 let modelRotation = 0
+let autoRotateTimeout = null
 
 scene.onPointerDown = function(event){
     isMouseDown = true
-    // camera.useAutoRotationBehavior = false;
-    mouseClick.play()
     mouseX = event.clientX
     animateCube = false
-
-    if(!musicPlayed) {
-        music.play()
-        if(music.isPlaying) {
-        musicPlayed = true
-        setTimeout(() => {
-            const musicInterval = setInterval(() => {
-            if(envVolume <= 0) {
-                clearInterval(musicInterval)
-                music.stop()
-            }
-            envVolume -= 0.001
-            music.setVolume(envVolume);
-            }, 250);
-        }, 7000);
-        }
-    }
-
-    if(camera.radius == 2) {
-        new TWEEN.Tween(camera)
-        .to({radius : 1.95 }, 200)
-        // .easing(TWEEN.Easing.Linear.InOut)
-        .start(); 
-    }
-
 }
 
 function animateCubeRotation(angle) {
@@ -383,27 +359,20 @@ function animateCubeRotation(angle) {
         },
         {
             y: (cycles*(2*Math.PI))+rotateAngle,
-            duration: 1.75,
+            duration: 2,
             ease: "power2.out"
         }
     )
-    
-    gsap.to(camera, 
-        {
-            radius: 1.7,
-            duration: 1.75,
-            ease: "power2.out"
-        }
-    )
-    // new TWEEN.Tween(camera)
-    // .to({radius : 1.7 }, 2000)
-    // .easing(TWEEN.Easing.Exponential.In)
-    // .start();
+    new TWEEN.Tween(camera)
+    .to({radius : 1.8 }, 2500)
+    .easing(TWEEN.Easing.Exponential.In)
+    .start();
 }
+
+let pointerUpAnimating = false
 
 scene.onPointerUp = function () {
     let toAnimateCamera = false,
-    cameraAlphaVal = null,
     angle = 0
 
     isMouseDown = false
@@ -411,20 +380,17 @@ scene.onPointerUp = function () {
     if(isDragging) {
         setTimeout(() => {
         isDragging = false
-        }, 100);
+        }, 10);
     }
-
-    setTimeout(() => {
-        // camera.useAutoRotationBehavior = true;
-    }, 2500);
+    console.log(isDragging);
     if(!isDragging){
 
         var pickResult = scene.pick(scene.pointerX, scene.pointerY);
 
         if (pickResult.hit && !isDragging) {
-            const clickedMeshName = pickResult.pickedMesh.name; 
-            console.log(clickedMeshName);
-            if(camera.radius != 1.7) {
+            
+            if(camera.radius != 1.8) {
+                const clickedMeshName = pickResult.pickedMesh.name;
                 if(clickedMeshName === "Plane.004"){//front panel
                     toAnimateCamera = true
                     angle = 0
@@ -444,28 +410,28 @@ scene.onPointerUp = function () {
                 }
 
                 if(toAnimateCamera) {
-                    // camera.useAutoRotationBehavior = false;
-                    const rotation = ((~~(camera.alpha/(2*Math.PI)))* 2*Math.PI) + cameraAlphaVal
                     camera.detachControl(canvas, true);
                     animateCubeRotation(angle)
-                    new TWEEN.Tween(camera)
-                    .to({radius : 1.7 }, 1500)
-                    .easing(TWEEN.Easing.Exponential.In)
-                    .start(); 
+                }
+            }else {
+                if(camera.radius == 1.8) {
+                    autoRotateTimeout = setTimeout(() => {
+                        animateCube = true
+                        backImg.video.muted = true
+                    }, 2500);
                 }
             }
 
-
         }else {
-            if(camera.radius != 2) {
+            if(camera.radius == 1.8) {
                 new TWEEN.Tween(camera)
-                .to({radius : 2.0 }, 1200)
+                .to({radius : 2.0 }, 2500)
                 .easing(TWEEN.Easing.Exponential.InOut)
                 .start(); 
-                setTimeout(() => {
+                autoRotateTimeout = setTimeout(() => {
                     animateCube = true
                     backImg.video.muted = true
-                }, 1000);
+                }, 2500);
             }
         }
 
@@ -480,21 +446,6 @@ scene.onPointerUp = function () {
     if(backImg) {
         backImg.video.play();
     }
-
-
-    //setTimeout(() => {
-        //isDragging = false;
-    //}, 300);
-
-    //rotation = Math.round(cubeModel.rotation.y / step) * step; 
-
-    /*new TWEEN.Tween(cubeModel.rotation)
-    .to({y: rotation }, 600)
-    .easing(TWEEN.Easing.Back.Out)
-    .onComplete(() => {
-        
-    })
-    .start(); */
 
 }
 
@@ -511,16 +462,12 @@ scene.onPointerMove = function(event){
     }
 
     if(isMouseDown) {
+        clearTimeout(autoRotateTimeout)
         isDragging = true
         bgContainer.classList.add('active')
     }else {
         bgContainer.classList.remove('active')
     }
-    
-    let direction = -1
-    if((event.offsetX - mouseX) < 0) {
-        direction = 1
-    } 
     
     const delta = -(event.offsetX - mouseX)
     /*if(Math.abs(delta) > 0.01){
@@ -530,7 +477,7 @@ scene.onPointerMove = function(event){
     if(isDragging){
         animateCube = false
         // const rotation = (cubeModel.rotation.y - (0.25 * delta * 100) - x);
-        modelRotation = cubeModel.rotation.y + ((delta * 0.0425));
+        modelRotation = cubeModel.rotation.y + ((delta * 0.06));
 
         const animation = gsap.fromTo(cubeModel.rotation, 
             {
@@ -538,7 +485,7 @@ scene.onPointerMove = function(event){
             },
             {
                 y: modelRotation,
-                duration: 1.75,
+                duration: 1.8,
                 ease: "power2.out"
             }
         )
@@ -546,65 +493,97 @@ scene.onPointerMove = function(event){
     }else {
         
         const pickResult = scene.pick(scene.pointerX, scene.pointerY);
-        console.log(pickResult.hit);
+        let selectedMesh = null
         if(pickResult.hit) {
             const clickedMeshName = pickResult.pickedMesh?.name;
             clickableMeshes.forEach(element => {
                 if(clickedMeshName === element.clickable.name){
-                    gsap.fromTo(element.actor.scaling, 
-                        {
-                            x: element.actor.scaling.x,
-                            y: element.actor.scaling.y,
-                            z: element.actor.scaling.z
-                        },
-                        {
-                            x: 1.035,
-                            y: 1.035,
-                            z: 1.035,
-                            duration: 0.5,
-                            ease: "power2.out"
-                        }
-                    )
+                    selectedMesh = element
+                    // element.actor.material._emissiveColor = new BABYLON.Color3(0, 0.68, 0.64);
                 }else {
-                    if(element.actor.scaling.x != 1) {
-                        gsap.fromTo(element.actor.scaling, 
-                            {
-                                x: element.actor.scaling.x,
-                                y: element.actor.scaling.y,
-                                z: element.actor.scaling.z
-                            },
-                            {
-                                x: 1,
-                                y: 1,
-                                z: 1,
-                                duration: 0.5,
-                                ease: "power2.out"
-                            }
-                        )
-                    }
-                }
-            });
-        }else {
-            clickableMeshes.forEach(element => {
-                if(element != null) {
-                    gsap.fromTo(element.actor.scaling, 
-                        {
-                            x: element.actor.scaling.x,
-                            y: element.actor.scaling.y,
-                            z: element.actor.scaling.z
-                        },
-                        {
-                            x: 1,
-                            y: 1,
-                            z: 1,
-                            duration: 0.5,
-                            ease: "power2.out"
-                        }
-                    )
+                    // element.actor.material._emissiveColor = new BABYLON.Color3(1, 1, 1);
                 }
             });
 
+            if(selectedMesh != null) {
+                if (clickedMeshName === selectedMesh.clickable.name) {
+                    gl.customEmissiveColorSelector = function(element, subMesh, material, result) {
+                        if(element.name == selectedMesh.actor.name) {
+                            result.set(0.18, 0.35, 0.35, 0);
+                        }else if (element.name === "White edge") {
+                            result.set(1, 1, 1, 1);
+                        }else if(element.name === "Green edge"){
+                            result.set(0, 1, 1, .5);
+                        }else {
+                            result.set(0, 0, 0, 0);
+                        }
+                    }
+                }
+            }
+        }else {
+            // clickableMeshes.forEach(subject => {
+            //     if(subject != null) {
+            //         // subject.actor.material._emissiveColor = new BABYLON.Color3(1, 1, 1);
+            //     }
+            // });
+            gl.customEmissiveColorSelector = function(element, subMesh, material, result) {
+                if (element.name === "White edge") {
+                    result.set(1, 1, 1, 1);
+                }else if(element.name === "Green edge"){
+                    result.set(0, 1, 1, .5);
+                }else {
+                    result.set(0, 0, 0, 0);
+                }
+            }
+
         }
+
+        // if(pickResult.hit) {
+        //     const clickedMeshName = pickResult.pickedMesh?.name;
+        //     clickableMeshes.forEach(element => {
+        //         if(clickedMeshName === element.clickable.name){
+        //             gsap.fromTo(element.actor.material, 
+        //                 {
+        //                     emissiveIntensity: element.actor.material.emissiveIntensity
+        //                 },
+        //                 {
+        //                     emissiveIntensity: 2.5,
+        //                     duration: 0.5,
+        //                     ease: "power2.out"
+        //                 }
+        //             )
+        //         }else {
+        //             if(element.actor.material.emissiveIntensity.x != 1) {
+        //                 gsap.fromTo(element.actor.material, 
+        //                     {
+        //                         emissiveIntensity: element.actor.material.emissiveIntensity,
+        //                     },
+        //                     {
+        //                         emissiveIntensity: 1,
+        //                         duration: 0.5,
+        //                         ease: "power2.out"
+        //                     }
+        //                 )
+        //             }
+        //         }
+        //     });
+        // }else {
+        //     clickableMeshes.forEach(element => {
+        //         if(element != null) {
+        //             gsap.fromTo(element.actor.material, 
+        //                 {
+        //                     emissiveIntensity: element.actor.material.emissiveIntensity,
+        //                 },
+        //                 {
+        //                     emissiveIntensity: 1,
+        //                     duration: 0.5,
+        //                     ease: "power2.out"
+        //                 }
+        //             )
+        //         }
+        //     });
+
+        // }
 
     }
     mouseX = event.offsetX;
