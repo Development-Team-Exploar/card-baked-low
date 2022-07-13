@@ -41,7 +41,7 @@ const createScene = function () {
             blurKernelSize: 280
         });
 
-        gl.intensity = 1.1;
+        gl.intensity = 1.25;
 
         // gl.intensity = 0;
         // gl2.intensity = 0;
@@ -128,13 +128,10 @@ const createScene = function () {
                 element.MATERIAL_ALPHABLEND = true
                 element.transparencyMode = element.MATERIAL_ALPHABLEND
                 element.alphaMode = BABYLON.Engine.ALPHA_PREMULTIPLIED;
-                console.log(element._emissiveColor);
-                // element._emissiveColor = new BABYLON.Color3(0, 0.16, 0.15, 0.75);
-                // element.specular = new BABYLON.Color3(0, 0.16, 0.15, 0.75);
 
             }else {
                 
-                element.roughness = 0.13
+                element.roughness = 0.055
             }
             
             if(element.name == 'Material.001') {
@@ -144,12 +141,8 @@ const createScene = function () {
             }        
         });
         
-        // scene.environmentTexture = new BABYLON.CubeTexture("environment.env", scene);
-
-        var reflectionTexture = new BABYLON.HDRCubeTexture("./assets/reflection-map_8K.hdr", scene, 128, false, true, false, true);
-
-        scene.environmentTexture = reflectionTexture
-       
+        let hdrTexture = BABYLON.CubeTexture.CreateFromPrefilteredData("./assets/environment-texture.env", scene);
+        scene.environmentTexture = hdrTexture;
         var frontImg = new BABYLON.Texture("./assets/Front.jpeg", scene);
         //frontImg.invertY = false;
         backImg = new BABYLON.VideoTexture("video", "./assets/square_video.mp4", scene, true);
@@ -215,7 +208,6 @@ const createScene = function () {
         mirror.environmentIntensity = 0	
         gl.addExcludedMesh(mirror);
         materialsToAnimate.push(mirror.material)
-        console.log(mirror.material);
         
         const plane = BABYLON.Mesh.CreateBox("ground", 1.0, scene);
         plane.scaling = new BABYLON.Vector3(500.0, .1, 500.0);
@@ -364,8 +356,8 @@ function animateCubeRotation(angle) {
         }
     )
     new TWEEN.Tween(camera)
-    .to({radius : 1.8 }, 2500)
-    .easing(TWEEN.Easing.Exponential.In)
+    .to({radius : 1.8 }, 2000)
+    .easing(TWEEN.Easing.Cubic.InOut)
     .start();
 }
 
@@ -379,10 +371,10 @@ scene.onPointerUp = function () {
 
     if(isDragging) {
         setTimeout(() => {
-        isDragging = false
+            isDragging = false
         }, 10);
     }
-    console.log(isDragging);
+    
     if(!isDragging){
 
         var pickResult = scene.pick(scene.pointerX, scene.pointerY);
@@ -423,10 +415,10 @@ scene.onPointerUp = function () {
             }
 
         }else {
-            if(camera.radius == 1.8) {
+            if(camera.radius != 2) {
                 new TWEEN.Tween(camera)
-                .to({radius : 2.0 }, 2500)
-                .easing(TWEEN.Easing.Exponential.InOut)
+                .to({radius : 2.0 }, 2000)
+                .easing(TWEEN.Easing.Cubic.InOut)
                 .start(); 
                 autoRotateTimeout = setTimeout(() => {
                     animateCube = true
@@ -492,98 +484,53 @@ scene.onPointerMove = function(event){
         
     }else {
         
-        const pickResult = scene.pick(scene.pointerX, scene.pointerY);
-        let selectedMesh = null
-        if(pickResult.hit) {
-            const clickedMeshName = pickResult.pickedMesh?.name;
-            clickableMeshes.forEach(element => {
-                if(clickedMeshName === element.clickable.name){
-                    selectedMesh = element
-                    // element.actor.material._emissiveColor = new BABYLON.Color3(0, 0.68, 0.64);
-                }else {
-                    // element.actor.material._emissiveColor = new BABYLON.Color3(1, 1, 1);
-                }
-            });
-
-            if(selectedMesh != null) {
-                if (clickedMeshName === selectedMesh.clickable.name) {
-                    gl.customEmissiveColorSelector = function(element, subMesh, material, result) {
-                        if(element.name == selectedMesh.actor.name) {
-                            result.set(0.18, 0.35, 0.35, 0);
-                        }else if (element.name === "White edge") {
-                            result.set(1, 1, 1, 1);
-                        }else if(element.name === "Green edge"){
-                            result.set(0, 1, 1, .5);
-                        }else {
-                            result.set(0, 0, 0, 0);
+        if(clickableMeshes.length > 0) {
+            const pickResult = scene.pick(scene.pointerX, scene.pointerY);
+            let selectedMesh = null
+            if(pickResult.hit) {
+                const clickedMeshName = pickResult.pickedMesh?.name;
+                clickableMeshes.forEach(element => {
+                    if(clickedMeshName === element.clickable.name){
+                        selectedMesh = element
+                        // element.actor.material._emissiveColor = new BABYLON.Color3(0, 0.68, 0.64);
+                    }else {
+                        // element.actor.material._emissiveColor = new BABYLON.Color3(1, 1, 1);
+                    }
+                });
+    
+                if(selectedMesh != null) {
+                    if (clickedMeshName === selectedMesh.clickable.name) {
+                        gl.customEmissiveColorSelector = function(element, subMesh, material, result) {
+                            if(element.name == selectedMesh.actor.name) {
+                                result.set(0.18, 0.35, 0.35, 0);
+                            }else if (element.name === "White edge") {
+                                result.set(1, 1, 1, 1);
+                            }else if(element.name === "Green edge"){
+                                result.set(0, 1, 1, .5);
+                            }else {
+                                result.set(0, 0, 0, 0);
+                            }
                         }
                     }
                 }
-            }
-        }else {
-            // clickableMeshes.forEach(subject => {
-            //     if(subject != null) {
-            //         // subject.actor.material._emissiveColor = new BABYLON.Color3(1, 1, 1);
-            //     }
-            // });
-            gl.customEmissiveColorSelector = function(element, subMesh, material, result) {
-                if (element.name === "White edge") {
-                    result.set(1, 1, 1, 1);
-                }else if(element.name === "Green edge"){
-                    result.set(0, 1, 1, .5);
-                }else {
-                    result.set(0, 0, 0, 0);
+            }else {
+                // clickableMeshes.forEach(subject => {
+                //     if(subject != null) {
+                //         // subject.actor.material._emissiveColor = new BABYLON.Color3(1, 1, 1);
+                //     }
+                // });
+                gl.customEmissiveColorSelector = function(element, subMesh, material, result) {
+                    if (element.name === "White edge") {
+                        result.set(1, 1, 1, 1);
+                    }else if(element.name === "Green edge"){
+                        result.set(0, 1, 1, .5);
+                    }else {
+                        result.set(0, 0, 0, 0);
+                    }
                 }
+    
             }
-
         }
-
-        // if(pickResult.hit) {
-        //     const clickedMeshName = pickResult.pickedMesh?.name;
-        //     clickableMeshes.forEach(element => {
-        //         if(clickedMeshName === element.clickable.name){
-        //             gsap.fromTo(element.actor.material, 
-        //                 {
-        //                     emissiveIntensity: element.actor.material.emissiveIntensity
-        //                 },
-        //                 {
-        //                     emissiveIntensity: 2.5,
-        //                     duration: 0.5,
-        //                     ease: "power2.out"
-        //                 }
-        //             )
-        //         }else {
-        //             if(element.actor.material.emissiveIntensity.x != 1) {
-        //                 gsap.fromTo(element.actor.material, 
-        //                     {
-        //                         emissiveIntensity: element.actor.material.emissiveIntensity,
-        //                     },
-        //                     {
-        //                         emissiveIntensity: 1,
-        //                         duration: 0.5,
-        //                         ease: "power2.out"
-        //                     }
-        //                 )
-        //             }
-        //         }
-        //     });
-        // }else {
-        //     clickableMeshes.forEach(element => {
-        //         if(element != null) {
-        //             gsap.fromTo(element.actor.material, 
-        //                 {
-        //                     emissiveIntensity: element.actor.material.emissiveIntensity,
-        //                 },
-        //                 {
-        //                     emissiveIntensity: 1,
-        //                     duration: 0.5,
-        //                     ease: "power2.out"
-        //                 }
-        //             )
-        //         }
-        //     });
-
-        // }
 
     }
     mouseX = event.offsetX;
