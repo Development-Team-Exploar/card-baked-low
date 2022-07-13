@@ -329,11 +329,6 @@ engine.runRenderLoop(function () {
     scene.render();
 });
 
-// Watch for browser/canvas resize events
-window.addEventListener("resize", function () {
-    engine.resize();
-});
-
 function toggleContentOverlay(){
 
     leftBigImg.children[0].pause();
@@ -566,6 +561,7 @@ scene.onPointerMove = function(event){
 
 const checkObjectSizePositions = () => {
     checkMobile()
+    engine.resize();
     sizes.width = window.innerWidth;
     sizes.height = window.innerHeight;
 
