@@ -66,7 +66,8 @@ const createScene = function () {
 
         cubeModel = scene.meshes[0];
         cubeModel.rotationQuaternion = null
-        scene.meshes[0].scaling = new BABYLON.Vector3(1, 1, 1);       
+        scene.meshes[0].scaling.scaleInPlace(1)
+        // scene.meshes[0].scaling = new BABYLON.Vector3(1, 1, 1);       
         if(document.body.classList.contains('isMobile')) {
             scene.meshes[0].scaling = new BABYLON.Vector3(.45, .45, .45);
         }
@@ -162,22 +163,34 @@ const createScene = function () {
         
         let hdrTexture = BABYLON.CubeTexture.CreateFromPrefilteredData("./assets/environment-texture.env", scene);
         scene.environmentTexture = hdrTexture;
-        // var frontImg = new BABYLON.Texture("./assets/Front.jpeg", scene);
+        let frontImg = new BABYLON.Texture("./assets/Right-1.jpg", scene);
         //frontImg.invertY = false;
         backImg = new BABYLON.VideoTexture("video", "./assets/square_video.mp4", scene, true);
         backImg.video.muted = true;
         //backImg.invertY = true;
-        // var leftImg = new BABYLON.Texture("./assets/Left.jpeg", scene);
+        let leftImg = new BABYLON.Texture("./assets/Front.jpeg", scene);
+        let rightImg = new BABYLON.Texture("./assets/Left.jpeg", scene);
         // leftImg.invertY = true;
-        // scene.getMaterialByName('Material.005').emissiveIntensity = 1.0;
-        scene.getMaterialByName('Material.005').roughness = 0.15
-        scene.getMaterialByName('Material.006').roughness = 0.15
 
-        scene.getMaterialByName("Material.007")._emissiveTexture = backImg;
-        scene.getMaterialByName("Material.007")._albedoTexture = backImg;
-        scene.getMaterialByName('Material.007').emissiveIntensity = 1.0;
+        scene.getMaterialByName("Material.005")._emissiveTexture = backImg;
+        scene.getMaterialByName("Material.005")._albedoTexture = backImg;
+        scene.getMaterialByName('Material.005').emissiveIntensity = 1.0;
+
+        scene.getMaterialByName('Material.006')._emissiveTexture = frontImg;
+        scene.getMaterialByName('Material.006')._albedoTexture = frontImg;
+        scene.getMaterialByName('Material.006').roughness = 0.15
         
+        scene.getMaterialByName('Material.007')._emissiveTexture = leftImg;
+        scene.getMaterialByName('Material.007')._albedoTexture = leftImg;
+        scene.getMaterialByName('Material.007').roughness = 0.15
+        
+        scene.getMaterialByName('Material.008')._emissiveTexture = rightImg;
+        scene.getMaterialByName('Material.008')._albedoTexture = rightImg;
         scene.getMaterialByName('Material.008').roughness = 0.15
+        
+        // scene.getMaterialByName("Material.007")._emissiveTexture = rightImg;
+        // scene.getMaterialByName("Material.007")._albedoTexture = rightImg;
+        // scene.getMaterialByName('Material.007').emissiveIntensity = 1.0;
 
         // console.log(scene.getMaterialByName("Material.006"));
         // scene.getMaterialByName("Material.006")._ambientTexture = leftImgSpec;
@@ -298,19 +311,6 @@ setTimeout(() => {
     animateCube = true
 }, 1500);
 
-//Audio
-var music = new BABYLON.Sound("music", "./assets/envAudio.wav", scene,null, {
-    volume: envVolume,
-    loop: true
-});
-
-let musicPlayed = false
-
-const mouseClick = new BABYLON.Sound("mouseClick", "./assets/mouse-click.wav", scene,null, {
-volume: 0.2
-});
-
-//Audio
 let animationIntervalTimer = 150
 let animationCounter = 0
 let animInterval = null
@@ -414,15 +414,15 @@ scene.onPointerUp = function () {
                 if(clickedMeshName === "Plane.004"){//front panel
                     toAnimateCamera = true
                     angle = 0
-                }else if(clickedMeshName === "Plane.002"){
+                }else if(clickedMeshName === "Plane.002"){//right panel
                     toAnimateCamera = true
-                    angle = 3*Math.PI/2
+                    angle = Math.PI/2
                 }else if(clickedMeshName === "Plane.003"){//back panel
                     toAnimateCamera = true
                     angle = Math.PI
-                }else if(clickedMeshName === "Plane.001"){
+                }else if(clickedMeshName === "Plane.001"){//left panel
                     toAnimateCamera = true
-                    angle = Math.PI/2
+                    angle = 3*Math.PI/2
                     backImg.video.currentTime = 0
                     backImg.video.muted = false
                 }else {
@@ -461,7 +461,6 @@ scene.onPointerUp = function () {
         // .easing(TWEEN.Easing.Linear.InOut)
         .start();
     }
-
 
     if(backImg) {
         backImg.video.play();
@@ -542,11 +541,6 @@ scene.onPointerMove = function(event){
                     }
                 }
             }else {
-                // clickableMeshes.forEach(subject => {
-                //     if(subject != null) {
-                //         // subject.actor.material._emissiveColor = new BABYLON.Color3(1, 1, 1);
-                //     }
-                // });
                 gl.customEmissiveColorSelector = function(element, subMesh, material, result) {
                     if (element.name === "White edge") {
                         result.set(1, 1, 1, 1);
