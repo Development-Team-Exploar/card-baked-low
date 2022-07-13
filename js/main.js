@@ -397,10 +397,14 @@ scene.onPointerUp = function () {
 
     isMouseDown = false
 
-    if(isDragging) {
-        setTimeout(() => {
-            isDragging = false
-        }, 10);
+    if(document.body.classList.contains('isMobile')) {
+        isDragging = false
+    }else {
+        if(isDragging) {
+            setTimeout(() => {
+                isDragging = false
+            }, 10);
+        }
     }
     
     if(!isDragging){
