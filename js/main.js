@@ -1,3 +1,18 @@
+const checkMobile = () => {
+    if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)){
+        // true for mobile device
+        document.body.classList.add('isMobile')
+    }else {
+        document.body.classList.remove('isMobile')
+    }
+}
+
+checkMobile()
+
+const sizes = {
+    width: window.innerWidth,
+    height: window.innerHeight
+}
 const canvas = document.getElementById("renderCanvas"); // Get the canvas element
 const engine = new BABYLON.Engine(canvas, true); // Generate the BABYLON 3D engine
 let backImg;
@@ -20,7 +35,10 @@ cubeMesh = null,
 animateCube = false,
 oldCubeRotation = 0,
 oldCubeRotationStep = 0,
-clickableMeshes = []
+clickableMeshes = [],
+mirror = null,
+mirrorOverlayPlane = null,
+lightBelowCube = null
 
 let timePointerDown, timePointerUp, camera;
 
@@ -48,9 +66,10 @@ const createScene = function () {
 
         cubeModel = scene.meshes[0];
         cubeModel.rotationQuaternion = null
-        scene.meshes[0].scaling.scaleInPlace(1);
-        //scene.meshes[0].scaling.scaleInPlace(0.3);
-        // scene.meshes[0].scaling = new BABYLON.Vector3(2,2,2);
+        scene.meshes[0].scaling = new BABYLON.Vector3(1, 1, 1);       
+        if(document.body.classList.contains('isMobile')) {
+            scene.meshes[0].scaling = new BABYLON.Vector3(.45, .45, .45);
+        }
         scene.meshes[0].position = new BABYLON.Vector3(0,0,0);
         gl.customEmissiveColorSelector = function(element, subMesh, material, result) {
             if (element.name === "White edge") {
@@ -143,20 +162,13 @@ const createScene = function () {
         
         let hdrTexture = BABYLON.CubeTexture.CreateFromPrefilteredData("./assets/environment-texture.env", scene);
         scene.environmentTexture = hdrTexture;
-        var frontImg = new BABYLON.Texture("./assets/Front.jpeg", scene);
+        // var frontImg = new BABYLON.Texture("./assets/Front.jpeg", scene);
         //frontImg.invertY = false;
         backImg = new BABYLON.VideoTexture("video", "./assets/square_video.mp4", scene, true);
         backImg.video.muted = true;
         //backImg.invertY = true;
-        var leftImg = new BABYLON.Texture("./assets/Left.jpeg", scene);
-        leftImg.invertY = true;
-        // var leftImgSpec = new BABYLON.Texture("./assets/signature-specularmap.jpg", scene);
-        // leftImgSpec.invertY = true;
-        // var rightImg = new BABYLON.Texture("./assets/Right.jpg", scene);
-        // // rightImg.invertX = true;
-
-        // scene.getMaterialByName('Material.005')._emissiveTexture = frontImg;
-        // scene.getMaterialByName('Material.005')._albedoTexture = frontImg;
+        // var leftImg = new BABYLON.Texture("./assets/Left.jpeg", scene);
+        // leftImg.invertY = true;
         // scene.getMaterialByName('Material.005').emissiveIntensity = 1.0;
         scene.getMaterialByName('Material.005').roughness = 0.15
         scene.getMaterialByName('Material.006').roughness = 0.15
@@ -177,24 +189,27 @@ const createScene = function () {
         // scene.getMaterialByName("Right_img.001")._albedoTexture = rightImg;
         // scene.getMaterialByName('Right_img.001').emissiveIntensity = 3.0;
         
-        // Mirror
-        // const light2 = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0.3, 0.3, 0));
-        // light2.intensity = 0.04
-        var light = new BABYLON.SpotLight("spotLight", new BABYLON.Vector3(-4, 0, 0), new BABYLON.Vector3(8, -8, 0), Math.PI / 2, 20, scene);
-        // light.diffuse = new BABYLON.Color3(1, 1, 1);
-	    // light.specular = new BABYLON.Color3(1, 1, 1);
-        // light.position = new BABYLON.Vector3(0, 0, 0);
-        light.intensity = 0.5;
-        // Mirror
+        if(document.body.classList.contains('isMobile')) {
+            lightBelowCube = new BABYLON.SpotLight("spotLight", new BABYLON.Vector3(-7.5, 0, 0), new BABYLON.Vector3(8, -8, 0), Math.PI / 2, 20, scene);
+            lightBelowCube.intensity = 0.7;
+        }else {
+            lightBelowCube = new BABYLON.SpotLight("spotLight", new BABYLON.Vector3(-4, 0, 0), new BABYLON.Vector3(8, -8, 0), Math.PI / 2, 20, scene);
+            lightBelowCube.intensity = 0.5;
+        }
+        
         cubeMesh = scene.getMeshByName("Cube");
         // Mirror
-        var mirror = BABYLON.Mesh.CreateBox("Mirror", 1.0, scene);
+        mirror = BABYLON.Mesh.CreateBox("Mirror", 1.0, scene);
         mirror.scaling = new BABYLON.Vector3(500.0, 1, 500.0);
         mirror.material = new BABYLON.StandardMaterial("mirror", scene);
         mirror.material.color = new BABYLON.Color3.FromHexString("#000000");
         // mirror.material.emissiveIntensity = 0.4;
         mirror.material.reflectionTexture = new BABYLON.MirrorTexture("mirror", {ratio: 1}, scene, true);
-        mirror.material.reflectionTexture.mirrorPlane = new BABYLON.Plane(0, -1.0, 0, -.49);
+        if(document.body.classList.contains('isMobile')) {
+            mirror.material.reflectionTexture.mirrorPlane = new BABYLON.Plane(0, -1.0, 0, -.26);
+        }else {
+            mirror.material.reflectionTexture.mirrorPlane = new BABYLON.Plane(0, -1.0, 0, -.49);
+        }
         mirror.material.reflectionTexture.renderList = meshArrayNotGlow.concat(meshArrayGlow);
         mirror.material.reflectionTexture.level = 0.5;
         mirror.material.reflectionTexture.adaptiveBlurKernel = 24;
@@ -209,13 +224,17 @@ const createScene = function () {
         gl.addExcludedMesh(mirror);
         materialsToAnimate.push(mirror.material)
         
-        const plane = BABYLON.Mesh.CreateBox("ground", 1.0, scene);
-        plane.scaling = new BABYLON.Vector3(500.0, .1, 500.0);
-        plane.position = new BABYLON.Vector3(0, -1.5, 0);
-        plane.rotation.y = -Math.PI/2
+        mirrorOverlayPlane = BABYLON.Mesh.CreateBox("ground", 1.0, scene);
+        mirrorOverlayPlane.scaling = new BABYLON.Vector3(500.0, .1, 500.0);
+        if(document.body.classList.contains('isMobile')) {
+            mirrorOverlayPlane.position = new BABYLON.Vector3(0, -1.4, 0);
+        }else {
+            mirrorOverlayPlane.position = new BABYLON.Vector3(0, -1.5, 0);
+        }
+        mirrorOverlayPlane.rotation.y = -Math.PI/2
         
         var pbr = new BABYLON.StandardMaterial("pbr", scene);
-        plane.material = pbr;
+        mirrorOverlayPlane.material = pbr;
 
         pbr.diffuseTexture = new BABYLON.Texture("./assets/concrete-polished.jpg", scene);
         pbr.diffuseTexture.uScale = 32;
@@ -239,11 +258,20 @@ const createScene = function () {
         scene.fogStart = 30.0;
         scene.fogEnd = 130.0;
         
-        // // meshArrayNotGlow.forEach(element => {
-        // //     gl.addExcludedMesh(element);
-        // //     element.setEnabled(false)
-        // // });
+        //check device orientation
+        if(sizes.width / sizes.height >= 1) {
+            console.log('landscape');
+            
+            scene.meshes[0].scaling = new BABYLON.Vector3(0.8,0.8,0.8);
+            mirrorOverlayPlane.position = new BABYLON.Vector3(0, -1.8, 0);
+            mirror.material.reflectionTexture.mirrorPlane.d = -.4
+        }else if(sizes.width / sizes.height <= 1) {
+            console.log('portrait');
 
+            scene.meshes[0].scaling = new BABYLON.Vector3(.45,.45,.45);
+            mirrorOverlayPlane.position = new BABYLON.Vector3(0, -1.4, 0);
+            mirror.material.reflectionTexture.mirrorPlane.d = -.26
+        }
         // console.log(scene.meshes[0]);
     });
 
@@ -537,6 +565,36 @@ scene.onPointerMove = function(event){
 
 }
 
-// document.addEventListener('pointerdown', pointerd)
 
-// Mouse interactions
+const checkObjectSizePositions = () => {
+    checkMobile()
+    sizes.width = window.innerWidth;
+    sizes.height = window.innerHeight;
+
+    if(scene != null && cubeModel != null) {
+        if(document.body.classList.contains('isMobile')){
+        
+            lightBelowCube.position.x = -7.5
+            if(sizes.width / sizes.height >= 1) {
+                console.log('landscape');
+                
+                scene.meshes[0].scaling = new BABYLON.Vector3(0.8,0.8,0.8);
+                mirrorOverlayPlane.position = new BABYLON.Vector3(0, -1.8, 0);
+                mirror.material.reflectionTexture.mirrorPlane.d = -.4
+            }else if(sizes.width / sizes.height <= 1) {
+                console.log('portrait');
+
+                scene.meshes[0].scaling = new BABYLON.Vector3(.45,.45,.45);
+                mirrorOverlayPlane.position = new BABYLON.Vector3(0, -1.4, 0);
+                mirror.material.reflectionTexture.mirrorPlane.d = -.26
+            }
+        }else {
+            scene.meshes[0].scaling = new BABYLON.Vector3(1,1,1);
+            mirrorOverlayPlane.position = new BABYLON.Vector3(0, -1.5, 0);
+            mirror.material.reflectionTexture.mirrorPlane.d = -.49
+            lightBelowCube.position.x = -4
+        }
+    }
+}
+
+window.addEventListener('resize', checkObjectSizePositions)
