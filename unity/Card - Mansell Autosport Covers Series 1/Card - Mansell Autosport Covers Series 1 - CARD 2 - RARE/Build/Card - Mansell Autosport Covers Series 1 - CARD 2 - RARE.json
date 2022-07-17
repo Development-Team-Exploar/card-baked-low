@@ -1,0 +1,16 @@
+{
+"companyName": "DefaultCompany",
+"productName": "ArtemaLabsWebGL",
+"productVersion": "0.1",
+"dataUrl": "Card - Mansell Autosport Covers Series 1 - CARD 2 - RARE.data.unityweb",
+"wasmCodeUrl": "Card - Mansell Autosport Covers Series 1 - CARD 2 - RARE.wasm.code.unityweb",
+"wasmFrameworkUrl": "Card - Mansell Autosport Covers Series 1 - CARD 2 - RARE.wasm.framework.unityweb",
+"graphicsAPI": ["WebGL 2.0"],
+"webglContextAttributes": {"preserveDrawingBuffer": false},
+"splashScreenStyle": "Dark",
+"backgroundColor": "#231F20",
+"cacheControl": {"default": "must-revalidate"},
+"developmentBuild": false,
+"multithreading": false,
+"unityVersion": "2019.4.33f1"
+}
